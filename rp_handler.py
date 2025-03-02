@@ -1,6 +1,12 @@
 import runpod
 import base64
 import numpy as np
+import sys
+import os
+
+now_dir = os.getcwd()
+sys.path.insert(0, now_dir)
+
 from rp_engine import TTSEngine
 
 tts_engine = TTSEngine()
@@ -30,4 +36,7 @@ def handler(event):
         yield result
 
 if __name__ == '__main__':
-    runpod.serverless.start({'handler': handler})
+    runpod.serverless.start({
+        'handler': handler,
+        'return_aggregate_stream': True,
+    })
