@@ -10,7 +10,7 @@ LABEL description="Docker image for GPT-SoVITS"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends tzdata ffmpeg libsox-dev parallel aria2 git git-lfs && \
+    apt-get install -y --no-install-recommends tzdata ffmpeg libsox-dev parallel aria2 unzip git git-lfs && \
     git lfs install && \
     rm -rf /var/lib/apt/lists/*
 
@@ -22,21 +22,33 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Define a build-time argument for image type
 ARG IMAGE_TYPE=full
 
-# Conditional logic based on the IMAGE_TYPE argument
-# Always copy the Docker directory, but only use it if IMAGE_TYPE is not "elite"
-COPY ./Docker /workspace/Docker 
-# elite 类型的镜像里面不包含额外的模型
-RUN if [ "$IMAGE_TYPE" != "elite" ]; then \
-        chmod +x /workspace/Docker/download.sh && \
-        /workspace/Docker/download.sh && \
-        python /workspace/Docker/download.py && \
-        python -m nltk.downloader averaged_perceptron_tagger cmudict; \
-    fi
+# # Conditional logic based on the IMAGE_TYPE argument
+# # Always copy the Docker directory, but only use it if IMAGE_TYPE is not "elite"
+# COPY ./Docker /workspace/Docker 
+# # elite 类型的镜像里面不包含额外的模型
+# RUN if [ "$IMAGE_TYPE" != "elite" ]; then \
+#         chmod +x /workspace/Docker/download.sh && \
+#         /workspace/Docker/download.sh && \
+#         python /workspace/Docker/download.py && \
+#         python -m nltk.downloader averaged_perceptron_tagger cmudict; \
+#     fi
 
+# Download models
+RUN mkdir -p /workspace/GPT-SoVITS/pretrained_models && \
+    huggingface-cli download lj1995/GPT-SoVITS --local-dir /workspace/GPT-SoVITS/pretrained_models
+RUN mkdir -p /workspace/text/G2PWModel && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M \
+        "https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip" \
+        -d "/tmp" -o "G2PWModel.zip" && \
+    unzip -q -o "/tmp/G2PWModel.zip" -d /workspace/text/ && \
+    rm "/tmp/G2PWModel.zip"
+RUN python -m nltk.downloader averaged_perceptron_tagger cmudict
 
 # Copy the rest of the application
 COPY . /workspace
 
-EXPOSE 9871 9872 9873 9874 9880
+# EXPOSE 9871 9872 9873 9874 9880
 
-CMD ["python", "webui.py"]
+# CMD ["python", "webui.py"]
+
+CMD ["python", "rp_handler.py"]

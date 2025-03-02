@@ -39,3 +39,5 @@ fastapi<0.112.2
 x_transformers
 torchmetrics<=1.5
 attrdict
+runpod
+huggingface_hub[cli]
