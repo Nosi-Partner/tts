@@ -10,6 +10,14 @@ tts_engine = TTSEngine()
 ref_text = "The quick brown fox jumps over the lazy dog."
 ref_audio_path = "reference.wav"
 
+# Warm up the model first
+tts_engine.synthesize(
+    text="Hey this is just a test to warm up.",
+    text_lang="en",
+    ref_audio_path=ref_audio_path,
+    prompt_text=ref_text,
+)
+
 def convert_audio_to_base64_wav(sample_rate, audio_data):
     # Create an in-memory WAV file
     with io.BytesIO() as wav_io:
