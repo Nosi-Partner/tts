@@ -41,22 +41,24 @@ def handler(event):
     input = event['input']
     text = input.get('text')
     
-    t = ttime()
+    t0 = ttime()
     for norm_text, sample_rate, audio_data in tts_engine.synthesize(
         text=text,
         text_lang="en",
         ref_audio_path=ref_audio_path,
         prompt_text=ref_text,
     ):
+        t1 = ttime()
         base64_audio = convert_audio_to_base64_wav(sample_rate, audio_data)
+        print(f"{ttime()-t1:.3f}s for converting audio of chunk")
         
         result = {
             "text": norm_text,
             "audio": base64_audio
         }
         
-        print(f"{ttime()-t:.3f}s for chunk")
-        t = ttime()
+        print(f"{ttime()-t0:.3f}s in total for chunk")
+        t0 = ttime()
         yield result
 
 if __name__ == '__main__':
