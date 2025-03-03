@@ -1,18 +1,31 @@
 import runpod
 import base64
 import numpy as np
-import sys
-import os
-
-now_dir = os.getcwd()
-sys.path.insert(0, now_dir)
-
+import io
+import wave
 from rp_engine import TTSEngine
 
 tts_engine = TTSEngine()
 
 ref_text = "The quick brown fox jumps over the lazy dog."
 ref_audio_path = "reference.wav"
+
+def convert_audio_to_base64_wav(sample_rate, audio_data):
+    # Create an in-memory WAV file
+    with io.BytesIO() as wav_io:
+        with wave.open(wav_io, 'wb') as wav_file:
+            wav_file.setnchannels(1)  # Mono audio
+            wav_file.setsampwidth(2)  # 16-bit audio (2 bytes)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(audio_data.tobytes())
+        
+        # Get the WAV bytes and encode to base64
+        wav_io.seek(0)
+        wav_bytes = wav_io.read()
+        base64_audio = base64.b64encode(wav_bytes).decode('utf-8')
+    
+    # Add the data URI prefix
+    return f"data:audio/wav;base64,{base64_audio}"
 
 def handler(event):
     input = event['input']
@@ -24,8 +37,7 @@ def handler(event):
         ref_audio_path=ref_audio_path,
         prompt_text=ref_text,
     ):
-        audio_bytes = audio_data.tobytes()
-        base64_audio = base64.b64encode(audio_bytes).decode('utf-8')
+        base64_audio = convert_audio_to_base64_wav(sample_rate, audio_data)
         
         result = {
             "text": original_text,

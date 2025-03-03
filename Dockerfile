@@ -35,14 +35,14 @@ ARG IMAGE_TYPE=full
 
 # Download models
 RUN mkdir -p /workspace/GPT-SoVITS/pretrained_models && \
-    huggingface-cli download lj1995/GPT-SoVITS --local-dir /workspace/GPT-SoVITS/pretrained_models
+    huggingface-cli download lj1995/GPT-SoVITS --local-dir /workspace/GPT_SoVITS/pretrained_models
 RUN mkdir -p /workspace/text/G2PWModel && \
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M \
         "https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip" \
         -d "/tmp" -o "G2PWModel.zip" && \
     unzip -q -o "/tmp/G2PWModel.zip" -d /workspace/text/ && \
     rm "/tmp/G2PWModel.zip"
-RUN python -m nltk.downloader averaged_perceptron_tagger cmudict
+RUN python -m nltk.downloader averaged_perceptron_tagger_eng cmudict
 
 # Copy the rest of the application
 COPY . /workspace
