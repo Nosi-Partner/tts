@@ -4,19 +4,21 @@ import numpy as np
 import io
 import wave
 from rp_engine import TTSEngine
+from time import time as ttime
 
 tts_engine = TTSEngine()
 
 ref_text = "The quick brown fox jumps over the lazy dog."
 ref_audio_path = "reference.wav"
 
-# Warm up the model first
-tts_engine.synthesize(
-    text="Hey this is just a test to warm up.",
-    text_lang="en",
-    ref_audio_path=ref_audio_path,
-    prompt_text=ref_text,
-)
+# # Warm up the model first
+# for sample_rate, audio_data in tts_engine.synthesize(
+#     text="Warm up.",
+#     text_lang="en",
+#     ref_audio_path=ref_audio_path,
+#     prompt_text=ref_text,
+# ):
+#     continue
 
 def convert_audio_to_base64_wav(sample_rate, audio_data):
     # Create an in-memory WAV file
@@ -39,7 +41,8 @@ def handler(event):
     input = event['input']
     text = input.get('text')
     
-    for original_text, sample_rate, audio_data in tts_engine.synthesize(
+    t = ttime()
+    for norm_text, sample_rate, audio_data in tts_engine.synthesize(
         text=text,
         text_lang="en",
         ref_audio_path=ref_audio_path,
@@ -48,11 +51,12 @@ def handler(event):
         base64_audio = convert_audio_to_base64_wav(sample_rate, audio_data)
         
         result = {
-            "text": original_text,
-            "sample_rate": sample_rate,
-            "audio_data_base64": base64_audio
+            "text": norm_text,
+            "audio": base64_audio
         }
         
+        print(f"{ttime()-t:.3f}s for chunk")
+        t = ttime()
         yield result
 
 if __name__ == '__main__':

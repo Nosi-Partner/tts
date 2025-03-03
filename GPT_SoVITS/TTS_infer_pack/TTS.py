@@ -914,7 +914,7 @@ class TTS:
                 t_45 += t5 - t4
                 if return_fragment:
                     print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
-                    yield self.audio_postprocess([batch_audio_fragment],
+                    yield norm_text, self.audio_postprocess([batch_audio_fragment],
                                                     self.configs.sampling_rate,
                                                     None,
                                                     speed_factor,
