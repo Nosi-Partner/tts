@@ -41,3 +41,4 @@ torchmetrics<=1.5
 attrdict
 runpod>=1.7.3
 huggingface_hub[cli]
+pydub

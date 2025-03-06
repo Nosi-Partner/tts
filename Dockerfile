@@ -34,7 +34,7 @@ ARG IMAGE_TYPE=full
 #     fi
 
 # Download models
-RUN mkdir -p /workspace/GPT-SoVITS/pretrained_models && \
+RUN mkdir -p /workspace/GPT_SoVITS/pretrained_models && \
     huggingface-cli download lj1995/GPT-SoVITS --local-dir /workspace/GPT_SoVITS/pretrained_models
 RUN mkdir -p /workspace/text/G2PWModel && \
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M \
@@ -46,6 +46,8 @@ RUN python -m nltk.downloader averaged_perceptron_tagger_eng cmudict
 
 # Copy the rest of the application
 COPY . /workspace
+RUN python /workspace/GPT_SoVITS/text/LangSegmenter/langsegmenter.py
+RUN cd /workspace/GPT_SoVITS && python -c "import text.japanese"
 
 # EXPOSE 9871 9872 9873 9874 9880
 

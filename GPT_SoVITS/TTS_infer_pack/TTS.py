@@ -15,6 +15,7 @@ import torch
 import torch.nn.functional as F
 import yaml
 from transformers import AutoModelForMaskedLM, AutoTokenizer
+import pickle
 
 from AR.models.t2s_lightning_module import Text2SemanticLightningModule
 from feature_extractor.cnhubert import CNHubert
@@ -276,9 +277,9 @@ class TTS:
     def _init_models(self,):
         self.init_t2s_weights(self.configs.t2s_weights_path)
         self.init_vits_weights(self.configs.vits_weights_path)
-        self.init_bert_weights(self.configs.bert_base_path)
-        self.init_cnhuhbert_weights(self.configs.cnhuhbert_base_path)
-        # self.enable_half_precision(self.configs.is_half)
+        # self.init_bert_weights(self.configs.bert_base_path)
+        # self.init_cnhuhbert_weights(self.configs.cnhuhbert_base_path)
+        self.enable_half_precision(self.configs.is_half)
 
 
 
@@ -667,6 +668,8 @@ class TTS:
         returns:
             Tuple[int, np.ndarray]: sampling rate and audio data.
         """
+        true_t0 = ttime()
+
         ########## variables initialization ###########
         self.stop_flag:bool = False
         text:str = inputs.get("text", "")
@@ -728,41 +731,48 @@ class TTS:
             ((self.prompt_cache["prompt_semantic"] is None) or (self.prompt_cache["refer_spec"] in [None, []])):
             raise ValueError("ref_audio_path cannot be empty, when the reference audio is not set using set_ref_audio()")
 
-        ###### setting reference audio and prompt text preprocessing ########
+        if self.prompt_cache["bert_features"] is None:
+            with open("prompt_cache.pkl", "rb") as f:
+                self.prompt_cache = pickle.load(f)
+                self.prompt_cache["prompt_semantic"] = self.prompt_cache["prompt_semantic"].to(self.configs.device)
+                self.prompt_cache["refer_spec"] = [self.prompt_cache["refer_spec"][0].to(self.configs.device)]
+                self.prompt_cache["bert_features"] = self.prompt_cache["bert_features"].to(self.configs.device)
+
+        # ###### setting reference audio and prompt text preprocessing ########
         t0 = ttime()
-        if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
-            if not os.path.exists(ref_audio_path):
-                raise ValueError(f"{ref_audio_path} not exists")
-            self.set_ref_audio(ref_audio_path)
+        # if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
+        #     if not os.path.exists(ref_audio_path):
+        #         raise ValueError(f"{ref_audio_path} not exists")
+        #     self.set_ref_audio(ref_audio_path)
 
-        aux_ref_audio_paths = aux_ref_audio_paths if aux_ref_audio_paths is not None else []
-        paths = set(aux_ref_audio_paths)&set(self.prompt_cache["aux_ref_audio_paths"])
-        if not (len(list(paths)) == len(aux_ref_audio_paths) == len(self.prompt_cache["aux_ref_audio_paths"])):
-            self.prompt_cache["aux_ref_audio_paths"] = aux_ref_audio_paths
-            self.prompt_cache["refer_spec"] = [self.prompt_cache["refer_spec"][0]]
-            for path in aux_ref_audio_paths:
-                if path in [None, ""]:
-                    continue
-                if not os.path.exists(path):
-                    print(i18n("音频文件不存在，跳过："), path)
-                    continue
-                self.prompt_cache["refer_spec"].append(self._get_ref_spec(path))
+        # aux_ref_audio_paths = aux_ref_audio_paths if aux_ref_audio_paths is not None else []
+        # paths = set(aux_ref_audio_paths)&set(self.prompt_cache["aux_ref_audio_paths"])
+        # if not (len(list(paths)) == len(aux_ref_audio_paths) == len(self.prompt_cache["aux_ref_audio_paths"])):
+        #     self.prompt_cache["aux_ref_audio_paths"] = aux_ref_audio_paths
+        #     self.prompt_cache["refer_spec"] = [self.prompt_cache["refer_spec"][0]]
+        #     for path in aux_ref_audio_paths:
+        #         if path in [None, ""]:
+        #             continue
+        #         if not os.path.exists(path):
+        #             print(i18n("音频文件不存在，跳过："), path)
+        #             continue
+        #         self.prompt_cache["refer_spec"].append(self._get_ref_spec(path))
 
-        if not no_prompt_text:
-            prompt_text = prompt_text.strip("\n")
-            if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
-            print(i18n("实际输入的参考文本:"), prompt_text)
-            if self.prompt_cache["prompt_text"] != prompt_text:
-                self.prompt_cache["prompt_text"] = prompt_text
-                self.prompt_cache["prompt_lang"] = prompt_lang
-                phones, bert_features, norm_text = \
-                    self.text_preprocessor.segment_and_extract_feature_for_text(
-                                                                        prompt_text,
-                                                                        prompt_lang,
-                                                                        self.configs.version)
-                self.prompt_cache["phones"] = phones
-                self.prompt_cache["bert_features"] = bert_features
-                self.prompt_cache["norm_text"] = norm_text
+        # if not no_prompt_text:
+        #     prompt_text = prompt_text.strip("\n")
+        #     if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
+        #     print(i18n("实际输入的参考文本:"), prompt_text)
+        #     if self.prompt_cache["prompt_text"] != prompt_text:
+        #         self.prompt_cache["prompt_text"] = prompt_text
+        #         self.prompt_cache["prompt_lang"] = prompt_lang
+        #         phones, bert_features, norm_text = \
+        #             self.text_preprocessor.segment_and_extract_feature_for_text(
+        #                                                                 prompt_text,
+        #                                                                 prompt_lang,
+        #                                                                 self.configs.version)
+        #         self.prompt_cache["phones"] = phones
+        #         self.prompt_cache["bert_features"] = bert_features
+        #         self.prompt_cache["norm_text"] = norm_text
 
 
 
@@ -913,6 +923,7 @@ class TTS:
                 t5 = ttime()
                 t_45 += t5 - t4
                 if return_fragment:
+                    print(f"True processing time for chunk: {ttime()-true_t0:.3f}s")
                     print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
                     yield norm_text, self.audio_postprocess([batch_audio_fragment],
                                                     self.configs.sampling_rate,
@@ -921,6 +932,7 @@ class TTS:
                                                     False,
                                                     fragment_interval
                                                     )
+                    true_t0 = ttime()
                 else:
                     audio.append(batch_audio_fragment)
 

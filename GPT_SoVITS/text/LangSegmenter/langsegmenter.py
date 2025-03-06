@@ -8,7 +8,7 @@ jieba.setLogLevel(logging.CRITICAL)
 # 更改fast_langdetect大模型位置
 from pathlib import Path
 import fast_langdetect
-fast_langdetect.ft_detect.infer.CACHE_DIRECTORY = Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"
+fast_langdetect.infer.CACHE_DIRECTORY = Path(__file__).parent.parent.parent / "pretrained_models" / "fast_langdetect"
 
 # 防止win下无法读取模型
 import os
