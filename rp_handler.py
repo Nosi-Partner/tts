@@ -61,11 +61,12 @@ def convert_audio_to_base64_opus(sample_rate, audio_data, bitrate='32k'):
 async def handler(event):
     input = event['input']
     text = input.get('text')
+    lang = input.get('lang', 'en')
     
     t0 = ttime()
     for norm_text, sample_rate, audio_data in tts_engine.synthesize(
         text=text,
-        text_lang="ja",
+        text_lang=lang,
         ref_audio_path=ref_audio_path,
         prompt_text=ref_text,
     ):
