@@ -38,7 +38,7 @@ RUN mkdir -p /workspace/GPT_SoVITS/pretrained_models && \
     huggingface-cli download lj1995/GPT-SoVITS --local-dir /workspace/GPT_SoVITS/pretrained_models
 RUN mkdir -p /workspace/text/G2PWModel && \
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M \
-        "https://paddlespeech.bj.bcebos.com/Parakeet/released_models/g2p/G2PWModel_1.1.zip" \
+        "https://huggingface.co/XXXXRT/GPT-SoVITS-Pretrained/resolve/main/G2PWModel.zip" \
         -d "/tmp" -o "G2PWModel.zip" && \
     unzip -q -o "/tmp/G2PWModel.zip" -d /workspace/text/ && \
     rm "/tmp/G2PWModel.zip"
